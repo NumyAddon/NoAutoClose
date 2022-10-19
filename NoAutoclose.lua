@@ -1,7 +1,5 @@
 local _, ns = ...
 
-_G.NAC = ns
-
 ns.hookedFrames = {}
 ns.ignore = {
     GossipFrame = true,
