@@ -1,0 +1,9 @@
+## Interface: @toc-version-retail@
+## Title: NoAutoClose
+## Version: @project-version@
+## Notes: Stop frames from auto-closing when you open a new one
+## Author: Numy
+## X-License: All Rights Reserved
+## X-Curse-Project-ID: 689952
+
+NoAutoclose.lua
