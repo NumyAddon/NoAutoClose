@@ -81,8 +81,8 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
     end
     local frame = _G[name]
     if not frame or self.ignore[name] then return end
-    if (frame.IsProtected and frame:IsProtected()) then
-        self.ignore[name] = true
+    if (frame.IsProtected and frame:IsProtected() and InCombatLockdown()) then
+        self:AddToCombatLockdownQueue(ns.HandleUIPanel, ns, name, info, flippedUiSpecialFrames)
         return
     end
     if (not flippedUiSpecialFrames[name]) then
@@ -100,12 +100,32 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
     end
 end
 
+function ns:AddToCombatLockdownQueue(func, ...)
+    if #self.CombatLockdownQueue == 0 then
+        self.eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED");
+    end
+
+    tinsert(self.CombatLockdownQueue, { func = func, args = { ... } });
+end
+
+function ns:PLAYER_REGEN_ENABLED()
+    self.eventFrame:UnregisterEvent("PLAYER_REGEN_ENABLED");
+    if #self.CombatLockdownQueue == 0 then return; end
+
+    for _, item in pairs(self.CombatLockdownQueue) do
+        item.func(unpack(item.args));
+    end
+    wipe(self.CombatLockdownQueue);
+end
+
 function ns:ADDON_LOADED()
     local flippedUiSpecialFrames = table_invert(UISpecialFrames)
 
     for name, info in pairs(UIPanelWindows) do
         self:HandleUIPanel(name, info, flippedUiSpecialFrames)
     end
+    WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1')
+    WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP')
 end
 
 function ns:Init()
@@ -113,15 +133,11 @@ function ns:Init()
     hooksecurefunc('HideUIPanel', function(frame) return self:OnHideUIPanel(frame) end)
     self:ReworkSettingsOpenAndClose()
 
-    local eventFrame = CreateFrame('Frame')
-    eventFrame:HookScript('OnEvent', function(_, event, ...) return self[event](self, event, ...) end)
-    eventFrame:RegisterEvent('ADDON_LOADED')
+    ns.eventFrame = CreateFrame('Frame')
+    ns.eventFrame:HookScript('OnEvent', function(_, event, ...) return self[event](self, event, ...) end)
+    ns.eventFrame:RegisterEvent('ADDON_LOADED')
 
-    C_Timer.After(2, function()
-        -- don't remember why this was needed, or when it should be triggered
-        ns:OnShowUIPanel(CharacterFrame)
-        ns:OnHideUIPanel(CharacterFrame)
-    end)
+    ns.combatLockdownQueue = {}
 end
 
 do
