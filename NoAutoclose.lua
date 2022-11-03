@@ -101,21 +101,21 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
 end
 
 function ns:AddToCombatLockdownQueue(func, ...)
-    if #self.CombatLockdownQueue == 0 then
+    if #self.combatLockdownQueue == 0 then
         self.eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED");
     end
 
-    tinsert(self.CombatLockdownQueue, { func = func, args = { ... } });
+    tinsert(self.combatLockdownQueue, { func = func, args = { ... } });
 end
 
 function ns:PLAYER_REGEN_ENABLED()
     self.eventFrame:UnregisterEvent("PLAYER_REGEN_ENABLED");
-    if #self.CombatLockdownQueue == 0 then return; end
+    if #self.combatLockdownQueue == 0 then return; end
 
-    for _, item in pairs(self.CombatLockdownQueue) do
+    for _, item in pairs(self.combatLockdownQueue) do
         item.func(unpack(item.args));
     end
-    wipe(self.CombatLockdownQueue);
+    wipe(self.combatLockdownQueue);
 end
 
 function ns:ADDON_LOADED()
