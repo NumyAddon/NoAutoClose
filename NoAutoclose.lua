@@ -128,6 +128,12 @@ function ns:ADDON_LOADED()
     WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP')
 end
 
+function ns:PLAYER_INTERACTION_MANAGER_FRAME_SHOW(_, type)
+    if type ~= Enum.PlayerInteractionType.Gossip and GossipFrame:IsShown() then
+        GossipFrame:Hide()
+    end
+end
+
 function ns:Init()
     hooksecurefunc('ShowUIPanel', function(frame) return self:OnShowUIPanel(frame) end)
     hooksecurefunc('HideUIPanel', function(frame) return self:OnHideUIPanel(frame) end)
@@ -136,6 +142,7 @@ function ns:Init()
     ns.eventFrame = CreateFrame('Frame')
     ns.eventFrame:HookScript('OnEvent', function(_, event, ...) return self[event](self, event, ...) end)
     ns.eventFrame:RegisterEvent('ADDON_LOADED')
+    ns.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_SHOW')
 
     ns.combatLockdownQueue = {}
 end
