@@ -2,8 +2,6 @@ local _, ns = ...
 
 ns.hookedFrames = {}
 ns.ignore = {
-    GossipFrame = true,
-    QuestFrame = true,
     WarboardQuestChoiceFrame = true,
     MacroFrame = true,
     CinematicFrame = true,
@@ -128,9 +126,26 @@ function ns:ADDON_LOADED()
     WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP')
 end
 
+ns.playerInteractionHideMap = {
+    [Enum.PlayerInteractionType.Gossip] = 'GossipFrame',
+    [Enum.PlayerInteractionType.QuestGiver] = 'QuestFrame',
+}
+
 function ns:PLAYER_INTERACTION_MANAGER_FRAME_SHOW(_, type)
-    if type ~= Enum.PlayerInteractionType.Gossip and GossipFrame:IsShown() then
-        GossipFrame:Hide()
+    for mapType, frameName in pairs(self.playerInteractionHideMap) do
+        local frame = _G[frameName]
+        if type ~= mapType and frame.IsShown and frame:IsShown() then
+            HideUIPanel(_G[frameName])
+        end
+    end
+end
+
+function ns:PLAYER_INTERACTION_MANAGER_FRAME_HIDE(_, type)
+    if self.playerInteractionHideMap[type] then
+        local frame = _G[self.playerInteractionHideMap[type]]
+        if frame and frame.IsShown and frame:IsShown() then
+            HideUIPanel(frame)
+        end
     end
 end
 
@@ -143,6 +158,7 @@ function ns:Init()
     ns.eventFrame:HookScript('OnEvent', function(_, event, ...) return self[event](self, event, ...) end)
     ns.eventFrame:RegisterEvent('ADDON_LOADED')
     ns.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_SHOW')
+    ns.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_HIDE')
 
     ns.combatLockdownQueue = {}
 end
