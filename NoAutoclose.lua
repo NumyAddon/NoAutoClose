@@ -96,6 +96,11 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
         frame:SetAttribute("UIPanelLayout-pushable", nil)
         frame:SetAttribute("UIPanelLayout-whileDead", nil)
     end
+    if (frame.GetPoint and not frame:GetPoint()) then
+        -- disabling the UIPanelLayout system removes the default location, so let's set one
+        local ofsx, ofsy = 50, -50
+        frame:SetPoint('TOPLEFT', UIParent, 'TOPLEFT', ofsx, ofsy)
+    end
 end
 
 function ns:AddToCombatLockdownQueue(func, ...)
