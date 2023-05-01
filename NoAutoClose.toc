@@ -3,6 +3,7 @@
 ## Version: @project-version@
 ## Notes: Stop frames from auto-closing when you open a new one
 ## Author: Numy
+## IconTexture: 982414
 ## X-License: All Rights Reserved
 ## X-Curse-Project-ID: 689952
 
