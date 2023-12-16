@@ -14,11 +14,20 @@ local nukedCenterPanels = {
 }
 
 local function table_invert(t)
-    local s={}
+    local s = {}
     for k,v in pairs(t) do
-        s[v]=k
+        s[v] = k
     end
+
     return s
+end
+
+local function setTrue(table, key)
+    TextureLoadingGroupMixin.AddTexture({textures = table}, key);
+end
+
+local function setNil(table, key)
+    TextureLoadingGroupMixin.RemoveTexture({textures = table}, key);
 end
 
 function ns:OnShowUIPanel(frame)
@@ -34,7 +43,7 @@ function ns:OnShowUIPanel(frame)
         if (frame.GetPoint and not frame:GetPoint()) then
             -- disabling the UIPanelLayout system removes the default location, so let's set one
             local ofsx, ofsy = 50, -50
-            frame:SetPoint('TOPLEFT', UIParent, 'TOPLEFT', ofsx, ofsy)
+            (frame.SetPointBase or frame.SetPoint)(frame, 'TOPLEFT', UIParent, 'TOPLEFT', ofsx, ofsy)
         end
         if (frame.IsToplevel and frame:IsToplevel() and frame.IsShown and frame:IsShown()) then
             -- if the frame is a toplevel frame, raise it to the top of the stack
@@ -74,7 +83,7 @@ end
 
 function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
     if info.area == 'center' and not nukedCenterPanels[name] then
-        UIPanelWindows[name].allowOtherPanels = true
+        setTrue(UIPanelWindows[name], 'allowOtherPanels')
         return
     end
     local frame = _G[name]
@@ -88,7 +97,7 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
         tinsert(UISpecialFrames, name)
     end
     self.hookedFrames[name] = true
-    UIPanelWindows[name] = nil
+    setNil(UIPanelWindows, name)
     if frame.SetAttribute then
         frame:SetAttribute("UIPanelLayout-defined", nil)
         frame:SetAttribute("UIPanelLayout-enabled", nil)
@@ -99,7 +108,7 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
     if (frame.GetPoint and not frame:GetPoint()) then
         -- disabling the UIPanelLayout system removes the default location, so let's set one
         local ofsx, ofsy = 50, -50
-        frame:SetPoint('TOPLEFT', UIParent, 'TOPLEFT', ofsx, ofsy)
+        (frame.SetPointBase or frame.SetPoint)(frame, 'TOPLEFT', UIParent, 'TOPLEFT', ofsx, ofsy)
     end
 end
 
@@ -155,12 +164,12 @@ function ns:PLAYER_INTERACTION_MANAGER_FRAME_HIDE(_, type)
 end
 
 function ns:Init()
-    hooksecurefunc('ShowUIPanel', function(frame) return self:OnShowUIPanel(frame) end)
-    hooksecurefunc('HideUIPanel', function(frame) return self:OnHideUIPanel(frame) end)
+    hooksecurefunc('ShowUIPanel', function(frame) self:OnShowUIPanel(frame) end)
+    hooksecurefunc('HideUIPanel', function(frame) self:OnHideUIPanel(frame) end)
     self:ReworkSettingsOpenAndClose()
 
     ns.eventFrame = CreateFrame('Frame')
-    ns.eventFrame:HookScript('OnEvent', function(_, event, ...) return self[event](self, event, ...) end)
+    ns.eventFrame:HookScript('OnEvent', function(_, event, ...) self[event](self, event, ...) end)
     ns.eventFrame:RegisterEvent('ADDON_LOADED')
     ns.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_SHOW')
     ns.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_HIDE')
