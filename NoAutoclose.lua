@@ -30,12 +30,23 @@ local function setNil(table, key)
     TextureLoadingGroupMixin.RemoveTexture({textures = table}, key);
 end
 
+function ns:ShouldIgnoreShowHideUIPanel(frame)
+    if frame == WorldMapFrame and IsAddOnLoaded('Carbonite') 
+        and Nx and Nx.db and Nx.db.profile and Nx.db.profile.Map and Nx.db.profile.Map.MaxOverride 
+    then
+        return true
+    end
+    
+    return false
+end
+
 function ns:OnShowUIPanel(frame)
     if (not frame or (InCombatLockdown() and frame:IsProtected())) then
         return -- can't touch this frame in combat :(
     end
 
     if (frame.IsShown and not frame:IsShown()) then
+        if self:ShouldIgnoreShowHideUIPanel(frame) then return end
         -- if possible, force show the frame, ignoring the INTERFACE_ACTION_BLOCKED message
         frame:Show()
     end
@@ -57,6 +68,7 @@ function ns:OnHideUIPanel(frame)
         return -- can't touch this frame in combat :(
     end
     if (frame.IsShown and frame:IsShown()) then
+        if self:ShouldIgnoreShowHideUIPanel(frame) then return end
         -- if possible, force hide the frame, ignoring the INTERFACE_ACTION_BLOCKED message
         frame:Hide()
     end
