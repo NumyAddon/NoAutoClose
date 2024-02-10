@@ -31,12 +31,12 @@ local function setNil(table, key)
 end
 
 function ns:ShouldIgnoreShowHideUIPanel(frame)
-    if frame == WorldMapFrame and IsAddOnLoaded('Carbonite') 
-        and Nx and Nx.db and Nx.db.profile and Nx.db.profile.Map and Nx.db.profile.Map.MaxOverride 
+    if frame == WorldMapFrame and IsAddOnLoaded('Carbonite')
+        and Nx and Nx.db and Nx.db.profile and Nx.db.profile.Map and Nx.db.profile.Map.MaxOverride
     then
         return true
     end
-    
+
     return false
 end
 
