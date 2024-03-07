@@ -179,7 +179,7 @@ function ns:ConfigureSecureEscHandler(frame)
     escHandler:HookScript('OnEvent', function(handlerFrame, event)
         if event == 'PLAYER_REGEN_ENABLED' then
             ClearOverrideBindings(handlerFrame);
-        elseif event == 'PLAYER_REGEN_DISABLED' then
+        elseif event == 'PLAYER_REGEN_DISABLED' and frame:IsVisible() then
             SetOverrideBindingClick(handlerFrame, true, 'ESCAPE', handlerFrame.name);
         end
     end);
