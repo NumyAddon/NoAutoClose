@@ -184,6 +184,7 @@ function ns:ConfigureSecureEscHandler(frame)
         end
     end);
     escHandler:SetAttribute('_onclick', [[
+        self:ClearBindings(); -- clear the bindings, just in case something is preventing the _onhide from firing
         local panel = self:GetFrameRef('panel');
         if panel:IsShown() then
             panel:Hide();
