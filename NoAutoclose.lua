@@ -206,8 +206,10 @@ function ns:ADDON_LOADED()
     for name, info in pairs(UIPanelWindows) do
         self:HandleUIPanel(name, info, flippedUiSpecialFrames);
     end
-    WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1');
-    WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP');
+    if InCombatLockdown() and WorldMapFrame:IsProtected() then
+        WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1');
+        WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP');
+    end
 end
 
 ns.playerInteractionHideMap = {
