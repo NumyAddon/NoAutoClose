@@ -138,6 +138,8 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
     end
 end
 
+--- @param func function
+--- @param ... any # arguments
 function ns:AddToCombatLockdownQueue(func, ...)
     if #self.combatLockdownQueue == 0 then
         self.eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED");
@@ -207,6 +209,11 @@ function ns:ADDON_LOADED()
         self:HandleUIPanel(name, info, flippedUiSpecialFrames);
     end
     if InCombatLockdown() and WorldMapFrame:IsProtected() then
+        self:AddToCombatLockdownQueue(function()
+            WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1');
+            WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP');
+        end);
+    else
         WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1');
         WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP');
     end
