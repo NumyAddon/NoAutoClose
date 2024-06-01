@@ -13,6 +13,11 @@ local nukedCenterPanels = {
     SettingsPanel = true,
 };
 
+local UpdateScaleForFit = UpdateScaleForFit or UIPanelUpdateScaleForFit;
+
+local CHECK_FIT_DEFAULT_EXTRA_WIDTH = 20;
+local CHECK_FIT_DEFAULT_EXTRA_HEIGHT = 20;
+
 local function table_invert(t)
     local s = {};
     for k,v in pairs(t) do
@@ -32,7 +37,7 @@ end
 
 function ns:ShouldIgnoreShowHideUIPanel(frame)
     if
-        frame == WorldMapFrame and IsAddOnLoaded('Carbonite')
+        frame == WorldMapFrame and C_AddOns.IsAddOnLoaded('Carbonite')
         and Nx and Nx.db and Nx.db.profile and Nx.db.profile.Map and Nx.db.profile.Map.MaxOverride
     then
         return true;
@@ -69,6 +74,9 @@ function ns:OnShowUIPanel(frame)
         if (frame.IsToplevel and frame:IsToplevel() and frame.IsShown and frame:IsShown()) then
             -- if the frame is a toplevel frame, raise it to the top of the stack
             frame:Raise();
+        end
+        if isHooked.checkFit then
+            UpdateScaleForFit(frame, isHooked.checkFitExtraWidth, isHooked.checkFitExtraHeight);
         end
     end
 end
@@ -122,7 +130,11 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
         flippedUiSpecialFrames[name] = true;
         tinsert(UISpecialFrames, name);
     end
-    self.hookedFrames[name] = true;
+    self.hookedFrames[name] = {
+        checkFit = UIPanelWindows[name].checkFit,
+        checkFitExtraWidth = UIPanelWindows[name].checkFitExtraWidth or CHECK_FIT_DEFAULT_EXTRA_WIDTH,
+        checkFitExtraHeight = UIPanelWindows[name].checkFitExtraHeight or CHECK_FIT_DEFAULT_EXTRA_HEIGHT,
+    };
     setNil(UIPanelWindows, name);
     if frame.SetAttribute then
         frame:SetAttribute("UIPanelLayout-defined", nil);
