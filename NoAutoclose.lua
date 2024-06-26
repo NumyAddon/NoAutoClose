@@ -131,9 +131,9 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
         tinsert(UISpecialFrames, name);
     end
     self.hookedFrames[name] = {
-        checkFit = UIPanelWindows[name].checkFit,
-        checkFitExtraWidth = UIPanelWindows[name].checkFitExtraWidth or CHECK_FIT_DEFAULT_EXTRA_WIDTH,
-        checkFitExtraHeight = UIPanelWindows[name].checkFitExtraHeight or CHECK_FIT_DEFAULT_EXTRA_HEIGHT,
+        checkFit = UIPanelWindows[name] and UIPanelWindows[name].checkFit,
+        checkFitExtraWidth = UIPanelWindows[name] and UIPanelWindows[name].checkFitExtraWidth or CHECK_FIT_DEFAULT_EXTRA_WIDTH,
+        checkFitExtraHeight = UIPanelWindows[name] and UIPanelWindows[name].checkFitExtraHeight or CHECK_FIT_DEFAULT_EXTRA_HEIGHT,
     };
     setNil(UIPanelWindows, name);
     if frame.SetAttribute then
