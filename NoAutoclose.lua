@@ -2,11 +2,12 @@ local _, ns = ...;
 
 ns.hookedFrames = {};
 ns.ignore = {
-    WarboardQuestChoiceFrame = true,
-    MacroFrame = true,
-    CinematicFrame = true,
-    BarberShopFrame = true,
+    BarberShopFrame = true, -- barbershop frame, better to allow it to hide the UI
+    CinematicFrame = true, -- cinematic frame, better to allow it to hide the UI
     CommunitiesFrame = true,
+    MacroFrame = true,
+    PerksProgramFrame = true, -- trading post frame, better to allow it to hide the UI
+    WarboardQuestChoiceFrame = true,
 };
 local nukedCenterPanels = {
     ClassTalentFrame = true,
