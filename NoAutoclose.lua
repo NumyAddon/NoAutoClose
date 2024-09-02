@@ -13,6 +13,9 @@ local nukedCenterPanels = {
     ClassTalentFrame = true,
     SettingsPanel = true,
 };
+local uiSpecialFrameBlacklist = {
+    PlayerSpellsFrame = true, -- cannot be safely closed with UISpecialFrames
+};
 
 local UpdateScaleForFit = UpdateScaleForFit or UIPanelUpdateScaleForFit;
 
@@ -36,10 +39,14 @@ local function setNil(table, key)
     TextureLoadingGroupMixin.RemoveTexture({textures = table}, key);
 end
 
-function ns:ShouldIgnoreShowHideUIPanel(frame)
+function ns:ShouldNotManuallyShowHide(frame)
+    local name = frame.GetName and frame:GetName();
     if
-        frame == WorldMapFrame and C_AddOns.IsAddOnLoaded('Carbonite')
-        and Nx and Nx.db and Nx.db.profile and Nx.db.profile.Map and Nx.db.profile.Map.MaxOverride
+        (
+            frame == WorldMapFrame and C_AddOns.IsAddOnLoaded('Carbonite')
+            and Nx and Nx.db and Nx.db.profile and Nx.db.profile.Map and Nx.db.profile.Map.MaxOverride
+        )
+        or (uiSpecialFrameBlacklist[name])
     then
         return true;
     end
@@ -49,20 +56,21 @@ end
 
 function ns:OnShowUIPanel(frame)
     if not frame or (frame.IsRestricted and frame:IsRestricted()) then return; end
-    local isHooked = (frame.GetName and frame:GetName() and self.hookedFrames[frame:GetName()]);
+    local name = frame.GetName and frame:GetName();
+    local isHooked = self.hookedFrames[name];
     if not isHooked and frame.IsProtected and frame:IsProtected() and InCombatLockdown() then return; end
 
-    if isHooked and frame.IsProtected and frame:IsProtected() then
+    if isHooked and ((frame.IsProtected and frame:IsProtected()) or uiSpecialFrameBlacklist[name]) then
         -- ensure that we have a secure esc handler configured for this frame
         if InCombatLockdown() then
             self:AddToCombatLockdownQueue(self.ConfigureSecureEscHandler, ns, frame);
             return; -- don't do anything else while we're in combat
         end
-        self:ConfigureSecureEscHandler(frame);
+        self:ConfigureSecureEscHandler(frame, uiSpecialFrameBlacklist[name]);
     end
 
     if (frame.IsShown and not frame:IsShown()) then
-        if self:ShouldIgnoreShowHideUIPanel(frame) then return; end
+        if self:ShouldNotManuallyShowHide(frame) then return; end
         -- if possible, force show the frame, ignoring the INTERFACE_ACTION_BLOCKED message
         frame:Show();
     end
@@ -87,7 +95,7 @@ function ns:OnHideUIPanel(frame)
         return; -- can't touch this frame in combat :(
     end
     if (frame.IsShown and frame:IsShown()) then
-        if self:ShouldIgnoreShowHideUIPanel(frame) then return; end
+        if self:ShouldNotManuallyShowHide(frame) then return; end
         -- if possible, force hide the frame, ignoring the INTERFACE_ACTION_BLOCKED message
         frame:Hide();
     end
@@ -119,15 +127,15 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
     end
     local frame = _G[name];
     if not frame or self.ignore[name] then return; end
-    if (frame.IsProtected and frame:IsProtected()) then
+    if ((frame.IsProtected and frame:IsProtected()) or uiSpecialFrameBlacklist[name]) then
         if InCombatLockdown() then
             self:AddToCombatLockdownQueue(ns.HandleUIPanel, ns, name, info, flippedUiSpecialFrames);
             return;
         end
 
-        self:ConfigureSecureEscHandler(frame);
+        self:ConfigureSecureEscHandler(frame, uiSpecialFrameBlacklist[name]);
     end
-    if (not flippedUiSpecialFrames[name]) then
+    if (not flippedUiSpecialFrames[name] and not uiSpecialFrameBlacklist[name]) then
         flippedUiSpecialFrames[name] = true;
         tinsert(UISpecialFrames, name);
     end
@@ -173,7 +181,7 @@ end
 
 local escHandlerMap = {};
 local handlerFrameIndex = 0;
-function ns:ConfigureSecureEscHandler(frame)
+function ns:ConfigureSecureEscHandler(frame, alwaysSetBindinOnShow)
     --[[
         Since the UIPanel system no longer taintlessly hides protected panels, we need to create a secure handler, which will
         configure a temporary keybinding for ESC, to hide the panel. Once we leave combat, we unbind it again, to go back to normal.
@@ -199,6 +207,7 @@ function ns:ConfigureSecureEscHandler(frame)
             SetOverrideBindingClick(handlerFrame, true, 'ESCAPE', handlerFrame.name);
         end
     end);
+    escHandler:SetAttribute('alwaysSetBindingOnShow', alwaysSetBindinOnShow);
     escHandler:SetAttribute('_onclick', [[
         self:ClearBindings(); -- clear the bindings, just in case something is preventing the _onhide from firing
         local panel = self:GetFrameRef('panel');
@@ -210,7 +219,8 @@ function ns:ConfigureSecureEscHandler(frame)
         self:ClearBindings();
     ]]);
     escHandler:SetAttribute('_onshow', [[
-        if PlayerInCombat() then
+        local alwaysSetBindingOnShow = self:GetAttribute('alwaysSetBindingOnShow');
+        if alwaysSetBindingOnShow or PlayerInCombat() then
             self:SetBindingClick(true, 'ESCAPE', self);
             local panel = self:GetFrameRef('panel');
             panel:Raise();
