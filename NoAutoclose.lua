@@ -39,7 +39,7 @@ local function setNil(table, key)
     TextureLoadingGroupMixin.RemoveTexture({textures = table}, key);
 end
 
-function ns:ShouldNotManuallyShowHide(frame)
+function ns:ShouldNotManuallyShowHide(frame, interfaceActionWasBlocked)
     local name = frame.GetName and frame:GetName();
     if
         (
@@ -51,10 +51,18 @@ function ns:ShouldNotManuallyShowHide(frame)
         return true;
     end
 
-    return false;
+    return not interfaceActionWasBlocked;
+end
+
+function ns:OnDisplayInterfaceActionBlockedMessage()
+    if InCombatLockdown() and debugstack(3):find("in function `ShowUIPanel'") then
+        self.interfaceActionWasBlocked = true;
+    end
 end
 
 function ns:OnShowUIPanel(frame)
+    local interfaceActionWasBlocked = self.interfaceActionWasBlocked;
+    self.interfaceActionWasBlocked = false;
     if not frame or (frame.IsRestricted and frame:IsRestricted()) then return; end
     local name = frame.GetName and frame:GetName();
     local isHooked = self.hookedFrames[name];
@@ -70,7 +78,7 @@ function ns:OnShowUIPanel(frame)
     end
 
     if (frame.IsShown and not frame:IsShown()) then
-        if self:ShouldNotManuallyShowHide(frame) then return; end
+        if self:ShouldNotManuallyShowHide(frame, interfaceActionWasBlocked) then return; end
         -- if possible, force show the frame, ignoring the INTERFACE_ACTION_BLOCKED message
         frame:Show();
     end
@@ -91,11 +99,13 @@ function ns:OnShowUIPanel(frame)
 end
 
 function ns:OnHideUIPanel(frame)
+    local interfaceActionWasBlocked = self.interfaceActionWasBlocked;
+    self.interfaceActionWasBlocked = false;
     if (not frame or (InCombatLockdown() and frame:IsProtected())) then
         return; -- can't touch this frame in combat :(
     end
     if (frame.IsShown and frame:IsShown()) then
-        if self:ShouldNotManuallyShowHide(frame) then return; end
+        if self:ShouldNotManuallyShowHide(frame, interfaceActionWasBlocked) then return; end
         -- if possible, force hide the frame, ignoring the INTERFACE_ACTION_BLOCKED message
         frame:Hide();
     end
@@ -277,6 +287,7 @@ end
 function ns:Init()
     hooksecurefunc('ShowUIPanel', function(frame) self:OnShowUIPanel(frame); end);
     hooksecurefunc('HideUIPanel', function(frame) self:OnHideUIPanel(frame); end);
+    hooksecurefunc('DisplayInterfaceActionBlockedMessage', function() self:OnDisplayInterfaceActionBlockedMessage(); end);
     self:ReworkSettingsOpenAndClose();
 
     ns.eventFrame = CreateFrame('Frame');
