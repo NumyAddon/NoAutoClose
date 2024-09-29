@@ -11,6 +11,7 @@ ns.ignore = {
 };
 local nukedCenterPanels = {
     ClassTalentFrame = true,
+    DelvesDifficultyPickerFrame = true,
     SettingsPanel = true,
 };
 local uiSpecialFrameBlacklist = {
@@ -60,10 +61,21 @@ function ns:OnDisplayInterfaceActionBlockedMessage()
     end
 end
 
+function ns:SetDefaultPosition(frame)
+    if
+        (frame.IsForbidden and frame:IsForbidden())
+        or (frame.IsProtected and frame:IsProtected() and InCombatLockdown())
+    then
+        return;
+    end
+    local ofsx, ofsy = 50, -50;
+    (frame.SetPointBase or frame.SetPoint)(frame, 'TOPLEFT', UIParent, 'TOPLEFT', ofsx, ofsy);
+end
+
 function ns:OnShowUIPanel(frame)
     local interfaceActionWasBlocked = self.interfaceActionWasBlocked;
     self.interfaceActionWasBlocked = false;
-    if not frame or (frame.IsRestricted and frame:IsRestricted()) then return; end
+    if not frame or (frame.IsForbidden and frame:IsForbidden()) then return; end
     local name = frame.GetName and frame:GetName();
     local isHooked = self.hookedFrames[name];
     if not isHooked and frame.IsProtected and frame:IsProtected() and InCombatLockdown() then return; end
@@ -85,8 +97,7 @@ function ns:OnShowUIPanel(frame)
     if isHooked then
         if (frame.GetPoint and not frame:GetPoint()) then
             -- disabling the UIPanelLayout system removes the default location, so let's set one
-            local ofsx, ofsy = 50, -50;
-            (frame.SetPointBase or frame.SetPoint)(frame, 'TOPLEFT', UIParent, 'TOPLEFT', ofsx, ofsy);
+            self:SetDefaultPosition(frame);
         end
         if (frame.IsToplevel and frame:IsToplevel() and frame.IsShown and frame:IsShown()) then
             -- if the frame is a toplevel frame, raise it to the top of the stack
@@ -287,7 +298,9 @@ end
 function ns:Init()
     hooksecurefunc('ShowUIPanel', function(frame) self:OnShowUIPanel(frame); end);
     hooksecurefunc('HideUIPanel', function(frame) self:OnHideUIPanel(frame); end);
+    hooksecurefunc('RegisterUIPanel', function() self:ADDON_LOADED(); end);
     hooksecurefunc('DisplayInterfaceActionBlockedMessage', function() self:OnDisplayInterfaceActionBlockedMessage(); end);
+    hooksecurefunc('RestoreUIPanelArea', function(frame) self:SetDefaultPosition(frame); end);
     self:ReworkSettingsOpenAndClose();
 
     ns.eventFrame = CreateFrame('Frame');
