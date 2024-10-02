@@ -68,6 +68,7 @@ function ns:SetDefaultPosition(frame)
     then
         return;
     end
+    frame:ClearAllPoints();
     local ofsx, ofsy = 50, -50;
     (frame.SetPointBase or frame.SetPoint)(frame, 'TOPLEFT', UIParent, 'TOPLEFT', ofsx, ofsy);
 end
