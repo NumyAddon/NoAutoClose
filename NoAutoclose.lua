@@ -13,7 +13,7 @@ local uiSpecialFrameBlacklist = {
     PlayerSpellsFrame = true, -- cannot be safely closed with UISpecialFrames
 };
 
-local UpdateScaleForFit = UpdateScaleForFit or UIPanelUpdateScaleForFit;
+local UpdateScaleForFit = UpdateScaleForFit or UIPanelUpdateScaleForFit or FrameUtil.UpdateScaleForFit;
 
 local CHECK_FIT_DEFAULT_EXTRA_WIDTH = 20;
 local CHECK_FIT_DEFAULT_EXTRA_HEIGHT = 20;
