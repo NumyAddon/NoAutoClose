@@ -1,5 +1,6 @@
 local addonName, ns = ...;
 
+--- @type { [ string ] : { checkFit: boolean, checkFitExtraWidth: number, checkFitExtraHeight: number } }
 ns.hookedFrames = {};
 ns.ignore = {
     BarberShopFrame = true, -- barbershop frame, better to allow it to hide the UI
@@ -12,6 +13,7 @@ ns.ignore = {
 local uiSpecialFrameBlacklist = {
     PlayerSpellsFrame = true, -- cannot be safely closed with UISpecialFrames
 };
+NoAutoClose = ns;
 
 local UpdateScaleForFit = UpdateScaleForFit or UIPanelUpdateScaleForFit or FrameUtil.UpdateScaleForFit;
 
@@ -38,6 +40,10 @@ end
 EventUtil.ContinueOnAddOnLoaded(addonName, function()
     ns:Init();
 end);
+
+ns.escHandlerMap = {};
+ns.handlerFrameIndex = 0;
+ns.sharedAttributesFrame = CreateFrame('Frame', nil, nil, 'SecureHandlerBaseTemplate');
 
 function ns:ShouldNotManuallyShowHide(frame, interfaceActionWasBlocked)
     local name = frame.GetName and frame:GetName();
@@ -201,37 +207,52 @@ function ns:PLAYER_REGEN_ENABLED()
     wipe(self.combatLockdownQueue);
 end
 
-local escHandlerMap = {};
-local handlerFrameIndex = 0;
-local sharedAttributesFrame = CreateFrame('Frame', nil, nil, 'SecureHandlerBaseTemplate');
-function ns:ConfigureSecureEscHandler(frame, alwaysSetBindinOnShow)
+function ns:PLAYER_REGEN_DISABLED()
+    -- if any frame has become protected since it was last shown, we need to configure the secure esc handler
+    --
+    for frameName, _ in pairs(self.hookedFrames) do
+        local frame = _G[frameName];
+        if frame and frame.IsProtected and frame:IsProtected() then
+            if not self.escHandlerMap[frame] then
+                self:ConfigureSecureEscHandler(frame, false, true);
+            end
+        end
+    end
+end
+
+local function escHandlerOnEvent(handlerFrame, event)
+    if event == 'PLAYER_REGEN_ENABLED' and not handlerFrame:GetAttribute('alwaysSetBindingOnShow') then
+        ClearOverrideBindings(handlerFrame);
+    elseif event == 'PLAYER_REGEN_DISABLED' and handlerFrame.panel:IsVisible() then
+        SetOverrideBindingClick(handlerFrame, true, 'ESCAPE', handlerFrame.name);
+    end
+end
+
+--- @param frame Frame
+--- @param alwaysSetBindingOnShow boolean # if true, the ESC binding will always be set when the frame is shown, regardless of combat state
+--- @param callRegenDisabledCode boolean? # if true, the PLAYER_REGEN_DISABLED event will be called immediately
+function ns:ConfigureSecureEscHandler(frame, alwaysSetBindingOnShow, callRegenDisabledCode)
     --[[
         Since the UIPanel system no longer taintlessly hides protected panels, we need to create a secure handler, which will
         configure a temporary keybinding for ESC, to hide the panel. Once we leave combat, we unbind it again, to go back to normal.
         The downside of this approach, is that protected frames will close 1 by 1, and that hiding the frames takes priority over e.g. canceling spell casting.
     --]]
+    if self.escHandlerMap[frame] then return; end
 
-    if escHandlerMap[frame] then return; end
-    handlerFrameIndex = handlerFrameIndex + 1;
-    local name = 'Numy_NoAutoClose_SecureEscapeHandlerFrame' .. handlerFrameIndex;
+    self.handlerFrameIndex = self.handlerFrameIndex + 1;
+    local name = 'Numy_NoAutoClose_SecureEscapeHandlerFrame' .. self.handlerFrameIndex;
     local escHandler = CreateFrame('Button', name, frame, 'SecureHandlerShowHideTemplate,SecureHandlerClickTemplate');
-    escHandlerMap[frame] = escHandler;
+    self.escHandlerMap[frame] = escHandler;
 
     escHandler.name = name;
     escHandler.panel = frame;
     escHandler:SetFrameRef('panel', frame);
     escHandler:SetFrameRef('UIParent', UIParent);
-    escHandler:SetFrameRef('sharedAttributesFrame', sharedAttributesFrame);
+    escHandler:SetFrameRef('sharedAttributesFrame', self.sharedAttributesFrame);
     escHandler:RegisterEvent('PLAYER_REGEN_ENABLED');
     escHandler:RegisterEvent('PLAYER_REGEN_DISABLED');
-    escHandler:HookScript('OnEvent', function(handlerFrame, event)
-        if event == 'PLAYER_REGEN_ENABLED' then
-            ClearOverrideBindings(handlerFrame);
-        elseif event == 'PLAYER_REGEN_DISABLED' and frame:IsVisible() then
-            SetOverrideBindingClick(handlerFrame, true, 'ESCAPE', handlerFrame.name);
-        end
-    end);
-    escHandler:SetAttribute('alwaysSetBindingOnShow', alwaysSetBindinOnShow);
+    escHandler:HookScript('OnEvent', escHandlerOnEvent);
+    escHandler:SetAttribute('alwaysSetBindingOnShow', alwaysSetBindingOnShow);
     escHandler:SetAttribute('_onclick', [[
         self:ClearBindings(); -- clear the bindings, just in case something is preventing the _onhide from firing
         local panel = self:GetFrameRef('panel');
@@ -257,6 +278,9 @@ function ns:ConfigureSecureEscHandler(frame, alwaysSetBindinOnShow)
             end
         end
     ]]);
+    if callRegenDisabledCode then
+        escHandlerOnEvent(escHandler, 'PLAYER_REGEN_DISABLED');
+    end
 end
 
 function ns:ADDON_LOADED()
@@ -312,6 +336,7 @@ function ns:Init()
     self.eventFrame:RegisterEvent('ADDON_LOADED');
     self.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_SHOW');
     self.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_HIDE');
+    self.eventFrame:RegisterEvent('PLAYER_REGEN_DISABLED');
 
     self.combatLockdownQueue = {};
 
@@ -334,9 +359,9 @@ function ns:initOptions()
         end
     end
     local function updatePositionAttributes(anchor, x, y)
-        sharedAttributesFrame:SetAttribute('anchor', anchor);
-        sharedAttributesFrame:SetAttribute('x', x);
-        sharedAttributesFrame:SetAttribute('y', y);
+        self.sharedAttributesFrame:SetAttribute('anchor', anchor);
+        self.sharedAttributesFrame:SetAttribute('x', x);
+        self.sharedAttributesFrame:SetAttribute('y', y);
     end
 
     local panel = CreateFrame('Frame');
