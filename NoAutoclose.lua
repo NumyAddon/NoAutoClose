@@ -8,6 +8,7 @@ ns.ignore = {
     CommunitiesFrame = true,
     MacroFrame = true,
     PerksProgramFrame = true, -- trading post frame, better to allow it to hide the UI
+    TokenFrame = true, -- breaks baganator's currency transfer, ignoring it doesn't impact things otherwise
     WarboardQuestChoiceFrame = true,
 };
 local uiSpecialFrameBlacklist = {
