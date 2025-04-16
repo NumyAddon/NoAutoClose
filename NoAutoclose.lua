@@ -62,7 +62,7 @@ function ns:ShouldNotManuallyShowHide(frame, interfaceActionWasBlocked)
 end
 
 function ns:OnDisplayInterfaceActionBlockedMessage()
-    if InCombatLockdown() and (debugstack(3):find('in function `ShowUIPanel\'') or debugstack(3):find('in function `HideUIPanel\'')) then
+    if InCombatLockdown() and (debugstack(3):find('in function .ShowUIPanel.') or debugstack(3):find('in function .HideUIPanel.')) then
         self.interfaceActionWasBlocked = true;
     end
 end
