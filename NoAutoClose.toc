@@ -4,6 +4,7 @@
 ## Interface-BCC: @toc-version-bcc@
 ## Interface-Wrath: @toc-version-wrath@
 ## Interface-Cata: @toc-version-cata@
+## Interface-Mists: @toc-version-mists@
 ## Title: NoAutoClose
 ## Version: @project-version@
 ## Notes: Stop frames from auto-closing when you open a new one
