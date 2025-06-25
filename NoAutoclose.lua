@@ -21,6 +21,14 @@ local UpdateScaleForFit = UpdateScaleForFit or UIPanelUpdateScaleForFit or Frame
 local CHECK_FIT_DEFAULT_EXTRA_WIDTH = 20;
 local CHECK_FIT_DEFAULT_EXTRA_HEIGHT = 20;
 
+local FRAME_POSITION_KEYS = {
+    left = 'left',
+    center = 'center',
+    right = 'right',
+    doublewide = 'doublewide',
+    fullscreen = 'fullscreen',
+};
+
 local function table_invert(t)
     local s = {};
     for k,v in pairs(t) do
@@ -31,17 +39,18 @@ local function table_invert(t)
 end
 
 local function setTrue(table, key)
-    TextureLoadingGroupMixin.AddTexture({textures = table}, key);
+    TextureLoadingGroupMixin.AddTexture({ textures = table }, key);
 end
 
 local function setNil(table, key)
-    TextureLoadingGroupMixin.RemoveTexture({textures = table}, key);
+    TextureLoadingGroupMixin.RemoveTexture({ textures = table }, key);
 end
 
 EventUtil.ContinueOnAddOnLoaded(addonName, function()
     ns:Init();
 end);
 
+ns.lastPrint = 0;
 ns.escHandlerMap = {};
 ns.handlerFrameIndex = 0;
 ns.sharedAttributesFrame = CreateFrame('Frame', nil, nil, 'SecureHandlerBaseTemplate');
@@ -135,6 +144,32 @@ function ns:OnHideUIPanel(frame)
     end
 end
 
+function ns:DetectStaleUiPanels()
+    local inCombat = InCombatLockdown();
+    local shownFrames = {};
+    for position, _ in pairs(FRAME_POSITION_KEYS) do
+        -- Blizzard could fix this in 5 minutes, but well...
+        local frame = GetUIPanel(position);
+        if frame and not frame:IsShown() then
+            tinsert(shownFrames, frame);
+        end
+    end
+    if not next(shownFrames) then return; end
+
+    if inCombat then
+        if (GetTime() - self.lastPrint) > 5 then
+            self.lastPrint = GetTime();
+            print('NoAutoClose: Detected an issue that can cause ESC to stop working properly. This cannot be fixed while in combat, once you leave combat it should be automatically fixed.');
+        end
+
+        return;
+    end
+    for _, frame in pairs(shownFrames) do
+        frame:Show();
+        HideUIPanel(frame);
+    end
+end
+
 function ns:ReworkSettingsOpenAndClose()
     if not SettingsPanel then return; end
 
@@ -192,15 +227,12 @@ end
 --- @param func function
 --- @param ... any # arguments
 function ns:AddToCombatLockdownQueue(func, ...)
-    if #self.combatLockdownQueue == 0 then
-        self.eventFrame:RegisterEvent('PLAYER_REGEN_ENABLED');
-    end
-
     tinsert(self.combatLockdownQueue, { func = func, args = { ... } });
 end
 
 function ns:PLAYER_REGEN_ENABLED()
-    self.eventFrame:UnregisterEvent('PLAYER_REGEN_ENABLED');
+    self:DetectStaleUiPanels();
+
     if #self.combatLockdownQueue == 0 then return; end
 
     for _, item in pairs(self.combatLockdownQueue) do
@@ -210,8 +242,9 @@ function ns:PLAYER_REGEN_ENABLED()
 end
 
 function ns:PLAYER_REGEN_DISABLED()
+    self:DetectStaleUiPanels();
+
     -- if any frame has become protected since it was last shown, we need to configure the secure esc handler
-    --
     for frameName, _ in pairs(self.hookedFrames) do
         local frame = _G[frameName];
         if frame and frame.IsProtected and frame:IsProtected() then
@@ -331,6 +364,7 @@ function ns:Init()
     hooksecurefunc('RegisterUIPanel', function() self:ADDON_LOADED(); end);
     hooksecurefunc('DisplayInterfaceActionBlockedMessage', function() self:OnDisplayInterfaceActionBlockedMessage(); end);
     hooksecurefunc('RestoreUIPanelArea', function(frame) self:SetDefaultPosition(frame); end);
+    hooksecurefunc('CloseWindows', function() self:DetectStaleUiPanels(); end);
     self:ReworkSettingsOpenAndClose();
 
     self.eventFrame = CreateFrame('Frame');
@@ -338,6 +372,7 @@ function ns:Init()
     self.eventFrame:RegisterEvent('ADDON_LOADED');
     self.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_SHOW');
     self.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_HIDE');
+    self.eventFrame:RegisterEvent('PLAYER_REGEN_ENABLED');
     self.eventFrame:RegisterEvent('PLAYER_REGEN_DISABLED');
 
     self.combatLockdownQueue = {};
