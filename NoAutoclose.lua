@@ -31,7 +31,7 @@ local FRAME_POSITION_KEYS = {
 
 local function table_invert(t)
     local s = {};
-    for k,v in pairs(t) do
+    for k, v in pairs(t) do
         s[v] = k;
     end
 
@@ -318,7 +318,7 @@ function ns:ConfigureSecureEscHandler(frame, alwaysSetBindingOnShow, callRegenDi
     end
 end
 
-function ns:ADDON_LOADED()
+function ns:ADDON_LOADED(loadedAddon)
     local flippedUiSpecialFrames = table_invert(UISpecialFrames);
 
     for name, info in pairs(UIPanelWindows) do
@@ -333,6 +333,10 @@ function ns:ADDON_LOADED()
         WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1');
         WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP');
     end
+    if loadedAddon == 'Sorted' then
+        -- that addon does some silly stuff, easier to just hardcode a workaround than to find a convoluted fix
+        tDeleteItem(UISpecialFrames, 'BankFrame');
+    end
 end
 
 ns.playerInteractionHideMap = {
@@ -340,7 +344,7 @@ ns.playerInteractionHideMap = {
     [Enum.PlayerInteractionType.QuestGiver] = 'QuestFrame',
 };
 
-function ns:PLAYER_INTERACTION_MANAGER_FRAME_SHOW(_, type)
+function ns:PLAYER_INTERACTION_MANAGER_FRAME_SHOW(type)
     for mapType, frameName in pairs(self.playerInteractionHideMap) do
         local frame = _G[frameName];
         if type ~= mapType and frame.IsShown and frame:IsShown() then
@@ -349,7 +353,7 @@ function ns:PLAYER_INTERACTION_MANAGER_FRAME_SHOW(_, type)
     end
 end
 
-function ns:PLAYER_INTERACTION_MANAGER_FRAME_HIDE(_, type)
+function ns:PLAYER_INTERACTION_MANAGER_FRAME_HIDE(type)
     if self.playerInteractionHideMap[type] then
         local frame = _G[self.playerInteractionHideMap[type]];
         if frame and frame.IsShown and frame:IsShown() then
@@ -368,7 +372,7 @@ function ns:Init()
     self:ReworkSettingsOpenAndClose();
 
     self.eventFrame = CreateFrame('Frame');
-    self.eventFrame:HookScript('OnEvent', function(_, event, ...) self[event](self, event, ...); end);
+    self.eventFrame:HookScript('OnEvent', function(_, event, ...) self[event](self, ...); end);
     self.eventFrame:RegisterEvent('ADDON_LOADED');
     self.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_SHOW');
     self.eventFrame:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_HIDE');
