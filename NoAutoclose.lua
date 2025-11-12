@@ -6,6 +6,7 @@ ns.ignore = {
     BarberShopFrame = true, -- barbershop frame, better to allow it to hide the UI
     CinematicFrame = true, -- cinematic frame, better to allow it to hide the UI
     CommunitiesFrame = true,
+    HouseEditorFrame = true, -- player housing editor frame, better to allow it to hide the UI
     MacroFrame = true,
     PerksProgramFrame = true, -- trading post frame, better to allow it to hide the UI
     TokenFrame = true, -- breaks baganator's currency transfer, ignoring it doesn't impact things otherwise
