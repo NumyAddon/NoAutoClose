@@ -1,7 +1,9 @@
 local addonName, ns = ...;
 
---- @type { [ string ] : { checkFit: boolean, checkFitExtraWidth: number, checkFitExtraHeight: number } }
+--- @type table<string, { checkFit: boolean, checkFitExtraWidth: number, checkFitExtraHeight: number }>
 ns.hookedFrames = {};
+--- @type table<string, boolean> # true if hooked, false if pending
+ns.ignoreControlLostFrames = {};
 ns.ignore = {
     BarberShopFrame = true, -- barbershop frame, better to allow it to hide the UI
     CinematicFrame = true, -- cinematic frame, better to allow it to hide the UI
@@ -145,7 +147,7 @@ function ns:OnHideUIPanel(frame)
     end
 end
 
-function ns:DetectStaleUiPanels()
+function ns:DetectStaleUIPanels()
     local inCombat = InCombatLockdown();
     local shownFrames = {};
     for position, _ in pairs(FRAME_POSITION_KEYS) do
@@ -206,11 +208,15 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
         flippedUiSpecialFrames[name] = true;
         tinsert(UISpecialFrames, name);
     end
+    local panelInfo = UIPanelWindows[name];
     self.hookedFrames[name] = {
-        checkFit = UIPanelWindows[name] and UIPanelWindows[name].checkFit,
-        checkFitExtraWidth = UIPanelWindows[name] and UIPanelWindows[name].checkFitExtraWidth or CHECK_FIT_DEFAULT_EXTRA_WIDTH,
-        checkFitExtraHeight = UIPanelWindows[name] and UIPanelWindows[name].checkFitExtraHeight or CHECK_FIT_DEFAULT_EXTRA_HEIGHT,
+        checkFit = panelInfo and panelInfo.checkFit,
+        checkFitExtraWidth = panelInfo and panelInfo.checkFitExtraWidth or CHECK_FIT_DEFAULT_EXTRA_WIDTH,
+        checkFitExtraHeight = panelInfo and panelInfo.checkFitExtraHeight or CHECK_FIT_DEFAULT_EXTRA_HEIGHT,
     };
+    if panelInfo and panelInfo.ignoreControlLost then
+        self.ignoreControlLostFrames[name] = false;
+    end
     setNil(UIPanelWindows, name);
     if frame.SetAttribute then
         frame:SetAttribute('UIPanelLayout-defined', nil);
@@ -232,7 +238,7 @@ function ns:AddToCombatLockdownQueue(func, ...)
 end
 
 function ns:PLAYER_REGEN_ENABLED()
-    self:DetectStaleUiPanels();
+    self:DetectStaleUIPanels();
 
     if #self.combatLockdownQueue == 0 then return; end
 
@@ -243,7 +249,7 @@ function ns:PLAYER_REGEN_ENABLED()
 end
 
 function ns:PLAYER_REGEN_DISABLED()
-    self:DetectStaleUiPanels();
+    self:DetectStaleUIPanels();
 
     -- if any frame has become protected since it was last shown, we need to configure the secure esc handler
     for frameName, _ in pairs(self.hookedFrames) do
@@ -325,6 +331,16 @@ function ns:ADDON_LOADED(loadedAddon)
     for name, info in pairs(UIPanelWindows) do
         self:HandleUIPanel(name, info, flippedUiSpecialFrames);
     end
+    for name, isHooked in pairs(self.ignoreControlLostFrames) do
+        if not isHooked and _G[name] and type(_G[name]) == 'table' then
+            self.ignoreControlLostFrames[name] = true;
+            _G[name]:HookScript('OnHide', function(f)
+                if debugstack(3):find("in function .CloseAllWindows_WithExceptions.") then
+                    ShowUIPanel(f);
+                end
+            end);
+        end
+    end
     if InCombatLockdown() and WorldMapFrame:IsProtected() then
         self:AddToCombatLockdownQueue(function()
             WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1');
@@ -369,7 +385,7 @@ function ns:Init()
     hooksecurefunc('RegisterUIPanel', function() self:ADDON_LOADED(); end);
     hooksecurefunc('DisplayInterfaceActionBlockedMessage', function() self:OnDisplayInterfaceActionBlockedMessage(); end);
     hooksecurefunc('RestoreUIPanelArea', function(frame) self:SetDefaultPosition(frame); end);
-    hooksecurefunc('CloseWindows', function() self:DetectStaleUiPanels(); end);
+    hooksecurefunc('CloseWindows', function() self:DetectStaleUIPanels(); end);
     self:ReworkSettingsOpenAndClose();
 
     self.eventFrame = CreateFrame('Frame');
@@ -472,10 +488,10 @@ end
 function ns:GetMoverFrame(onMoveCallback)
     local NineSliceLayout =
     {
-        ["TopRightCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x=8, y=8 },
-        ["TopLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x=-8, y=8 },
-        ["BottomLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x=-8, y=-8 },
-        ["BottomRightCorner"] = { atlas = "%s-NineSlice-Corner",  mirrorLayout = true, x=8, y=-8 },
+        ["TopRightCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = 8, y = 8 },
+        ["TopLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = -8, y = 8 },
+        ["BottomLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = -8, y = -8 },
+        ["BottomRightCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = 8, y = -8 },
         ["TopEdge"] = { atlas = "_%s-NineSlice-EdgeTop" },
         ["BottomEdge"] = { atlas = "_%s-NineSlice-EdgeBottom" },
         ["LeftEdge"] = { atlas = "!%s-NineSlice-EdgeLeft" },
