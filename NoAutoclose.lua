@@ -386,6 +386,9 @@ function ns:Init()
     hooksecurefunc('DisplayInterfaceActionBlockedMessage', function() self:OnDisplayInterfaceActionBlockedMessage(); end);
     hooksecurefunc('RestoreUIPanelArea', function(frame) self:SetDefaultPosition(frame); end);
     hooksecurefunc('CloseWindows', function() self:DetectStaleUIPanels(); end);
+    hooksecurefunc('RegisterUIPanel', function(name, info)
+        self:HandleUIPanel(name, info, table_invert(UISpecialFrames));
+    end);
     self:ReworkSettingsOpenAndClose();
 
     self.eventFrame = CreateFrame('Frame');
