@@ -480,12 +480,11 @@ function ns:initOptions()
     end);
 
     local category, _ = Settings.RegisterCanvasLayoutCategory(panel, panel.name);
-    category.ID = panel.name;
     Settings.RegisterAddOnCategory(category);
 
     SLASH_NOAUTOCLOSE1 = '/noautoclose';
     SLASH_NOAUTOCLOSE2 = '/nac';
-    SlashCmdList['NOAUTOCLOSE'] = function() Settings.OpenToCategory(panel.name); end;
+    SlashCmdList['NOAUTOCLOSE'] = function() Settings.OpenToCategory(category:GetID()); end;
 end
 
 function ns:GetMoverFrame(onMoveCallback)
