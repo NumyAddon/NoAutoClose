@@ -484,7 +484,13 @@ function ns:initOptions()
 
     SLASH_NOAUTOCLOSE1 = '/noautoclose';
     SLASH_NOAUTOCLOSE2 = '/nac';
-    SlashCmdList['NOAUTOCLOSE'] = function() Settings.OpenToCategory(category:GetID()); end;
+    SlashCmdList['NOAUTOCLOSE'] = function()
+        if C_SettingsUtil and C_SettingsUtil.OpenSettingsPanel and InCombatLockdown() then
+            print("Cannot open the settings in combat")
+            return;
+        end
+        Settings.OpenToCategory(category:GetID());
+    end;
 end
 
 function ns:GetMoverFrame(onMoveCallback)
