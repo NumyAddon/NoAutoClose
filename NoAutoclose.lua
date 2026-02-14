@@ -199,8 +199,10 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
     if ((frame.IsProtected and frame:IsProtected()) or uiSpecialFrameBlacklist[name]) then
         if InCombatLockdown() then
             self:AddToCombatLockdownQueue(ns.HandleUIPanel, ns, name, info, flippedUiSpecialFrames);
+            setTrue(frame, 'editModeManuallyShown');
             return;
         end
+        setNil(frame, 'editModeManuallyShown');
 
         self:ConfigureSecureEscHandler(frame, uiSpecialFrameBlacklist[name]);
     end
@@ -283,6 +285,7 @@ function ns:ConfigureSecureEscHandler(frame, alwaysSetBindingOnShow, callRegenDi
 
     self.handlerFrameIndex = self.handlerFrameIndex + 1;
     local name = 'Numy_NoAutoClose_SecureEscapeHandlerFrame' .. self.handlerFrameIndex;
+    --- @class NAP_EscHandler: Button, SecureHandlerShowHideTemplate, SecureHandlerClickTemplate
     local escHandler = CreateFrame('Button', name, frame, 'SecureHandlerShowHideTemplate,SecureHandlerClickTemplate');
     self.escHandlerMap[frame] = escHandler;
 
@@ -320,6 +323,9 @@ function ns:ConfigureSecureEscHandler(frame, alwaysSetBindingOnShow, callRegenDi
             end
         end
     ]]);
+    if frame:IsShown() and alwaysSetBindingOnShow then
+        escHandler:Execute(escHandler:GetAttribute('_onshow'));
+    end
     if callRegenDisabledCode then
         escHandlerOnEvent(escHandler, 'PLAYER_REGEN_DISABLED');
     end
