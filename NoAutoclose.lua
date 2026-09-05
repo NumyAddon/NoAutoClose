@@ -17,7 +17,7 @@ ns.ignore = {
 local uiSpecialFrameBlacklist = {
     PlayerSpellsFrame = true, -- cannot be safely closed with UISpecialFrames
 };
-NoAutoClose = ns;
+_G.NoAutoClose = ns;
 
 local UpdateScaleForFit = UpdateScaleForFit or UIPanelUpdateScaleForFit or FrameUtil.UpdateScaleForFit;
 
@@ -355,6 +355,9 @@ function ns:ADDON_LOADED(loadedAddon)
     else
         WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1');
         WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP');
+    end
+    if loadedAddon == 'Blizzard_Professions' or (loadedAddon == addonName and C_AddOns.IsAddOnLoaded('Blizzard_Professions')) then
+        ProfessionsFrame:UnregisterEvent("TRADE_SKILL_CLOSE");
     end
     if loadedAddon == 'Sorted' then
         -- that addon does some silly stuff, easier to just hardcode a workaround than to find a convoluted fix
