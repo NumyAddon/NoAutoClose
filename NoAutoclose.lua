@@ -356,9 +356,6 @@ function ns:ADDON_LOADED(loadedAddon)
         WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1');
         WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP');
     end
-    if loadedAddon == 'Blizzard_Professions' or (loadedAddon == addonName and C_AddOns.IsAddOnLoaded('Blizzard_Professions')) then
-        ProfessionsFrame:UnregisterEvent("TRADE_SKILL_CLOSE");
-    end
     if loadedAddon == 'Sorted' then
         -- that addon does some silly stuff, easier to just hardcode a workaround than to find a convoluted fix
         tDeleteItem(UISpecialFrames, 'BankFrame');
