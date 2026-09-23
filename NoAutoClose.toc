@@ -6,6 +6,8 @@
 ## Version: @project-version@
 ## Notes: Stop frames from auto-closing when you open a new one
 ## Author: Numy
+## X-GameType: [Game]
+## X-GameFamily: [Family]
 ## IconTexture: Interface\Addons\NoAutoClose\media\icon
 ## SavedVariables: NoAutoCloseDB
 ## X-License: All Rights Reserved
