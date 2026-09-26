@@ -32,9 +32,6 @@ local FRAME_POSITION_KEYS = {
     fullscreen = 'fullscreen',
 };
 
-local toc = select(4, GetBuildInfo())
-local is4E = toc >= 16000 and toc < 20000
-
 local function table_invert(t)
     local s = {};
     for k, v in pairs(t) do
@@ -111,14 +108,10 @@ function ns:OnShowUIPanel(frame)
     if isHooked and ((frame.IsProtected and frame:IsProtected()) or uiSpecialFrameBlacklist[name]) then
         -- ensure that we have a secure esc handler configured for this frame
         if InCombatLockdown() then
-            if not is4E then -- temporary disable while RE is dead
-                self:AddToCombatLockdownQueue(self.ConfigureSecureEscHandler, ns, frame);
-            end
+            self:AddToCombatLockdownQueue(self.ConfigureSecureEscHandler, ns, frame);
             return; -- don't do anything else while we're in combat
         end
-        if not is4E then -- temporary disable while RE is dead
-            self:ConfigureSecureEscHandler(frame, uiSpecialFrameBlacklist[name]);
-        end
+        self:ConfigureSecureEscHandler(frame, uiSpecialFrameBlacklist[name]);
     end
 
     if (frame.IsShown and not frame:IsShown()) then
@@ -211,14 +204,7 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
         end
         setNil(frame, 'editModeManuallyShown');
 
-        if is4E then -- temporary disable while RE is dead
-            if (not flippedUiSpecialFrames[name]) then
-                flippedUiSpecialFrames[name] = true;
-                tinsert(UISpecialFrames, name);
-            end
-        else
-            self:ConfigureSecureEscHandler(frame, uiSpecialFrameBlacklist[name]);
-        end
+        self:ConfigureSecureEscHandler(frame, uiSpecialFrameBlacklist[name]);
     end
     if (not flippedUiSpecialFrames[name] and not uiSpecialFrameBlacklist[name]) then
         flippedUiSpecialFrames[name] = true;
@@ -271,7 +257,7 @@ function ns:PLAYER_REGEN_DISABLED()
     for frameName, _ in pairs(self.hookedFrames) do
         local frame = _G[frameName];
         if frame and frame.IsProtected and frame:IsProtected() then
-            if not self.escHandlerMap[frame] and not is4E then -- temporary disable while RE is dead
+            if not self.escHandlerMap[frame] then
                 self:ConfigureSecureEscHandler(frame, false, true);
             end
         end
