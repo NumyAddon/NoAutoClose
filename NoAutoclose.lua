@@ -108,7 +108,7 @@ function ns:OnShowUIPanel(frame)
     if isHooked and ((frame.IsProtected and frame:IsProtected()) or uiSpecialFrameBlacklist[name]) then
         -- ensure that we have a secure esc handler configured for this frame
         if InCombatLockdown() then
-            self:AddToCombatLockdownQueue(self.ConfigureSecureEscHandler, ns, frame);
+            self:ExecuteOutsideCombatLockdown(self.ConfigureSecureEscHandler, ns, frame);
             return; -- don't do anything else while we're in combat
         end
         self:ConfigureSecureEscHandler(frame, uiSpecialFrameBlacklist[name]);
@@ -198,7 +198,7 @@ function ns:HandleUIPanel(name, info, flippedUiSpecialFrames)
     if not frame or self.ignore[name] then return; end
     if ((frame.IsProtected and frame:IsProtected()) or uiSpecialFrameBlacklist[name]) then
         if InCombatLockdown() then
-            self:AddToCombatLockdownQueue(ns.HandleUIPanel, ns, name, info, flippedUiSpecialFrames);
+            self:ExecuteOutsideCombatLockdown(ns.HandleUIPanel, ns, name, info, flippedUiSpecialFrames);
             setTrue(frame, 'editModeManuallyShown');
             return;
         end
@@ -235,8 +235,12 @@ end
 
 --- @param func function
 --- @param ... any # arguments
-function ns:AddToCombatLockdownQueue(func, ...)
-    tinsert(self.combatLockdownQueue, { func = func, args = { ... } });
+function ns:ExecuteOutsideCombatLockdown(func, ...)
+    if not InCombatLockdown() then
+        func(...)
+    else
+        tinsert(self.combatLockdownQueue, { func = func, args = { ... } });
+    end
 end
 
 function ns:PLAYER_REGEN_ENABLED()
@@ -347,8 +351,8 @@ function ns:ADDON_LOADED(loadedAddon)
             end);
         end
     end
-    if InCombatLockdown() and WorldMapFrame:IsProtected() then
-        self:AddToCombatLockdownQueue(function()
+    if WorldMapFrame:IsProtected() then
+        self:ExecuteOutsideCombatLockdown(function()
             WorldMapFrame:SetAttribute('UIPanelLayout-defined', '1');
             WorldMapFrame:SetAttribute('UIPanelLayout-maximizePoint', 'TOP');
         end);
@@ -457,11 +461,7 @@ function ns:initOptions()
         self.db.defaultPosition.x = x;
         self.db.defaultPosition.y = y;
         updatePositionText();
-        if InCombatLockdown() then
-            self:AddToCombatLockdownQueue(updatePositionAttributes, anchor, x, y);
-        else
-            updatePositionAttributes(anchor, x, y);
-        end
+        self:ExecuteOutsideCombatLockdown(updatePositionAttributes, anchor, x, y);
     end);
     panel:SetScript('OnHide', function() moverFrame:Hide(); end);
 
@@ -500,8 +500,7 @@ function ns:initOptions()
 end
 
 function ns:GetMoverFrame(onMoveCallback)
-    local NineSliceLayout =
-    {
+    local NineSliceLayout = {
         ["TopRightCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = 8, y = 8 },
         ["TopLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = -8, y = 8 },
         ["BottomLeftCorner"] = { atlas = "%s-NineSlice-Corner", mirrorLayout = true, x = -8, y = -8 },
@@ -526,9 +525,7 @@ function ns:GetMoverFrame(onMoveCallback)
     closeButton:SetFrameStrata('DIALOG')
     closeButton:SetFrameLevel(9999);
     closeButton:SetPoint('TOPRIGHT', frame, 'TOPRIGHT', 0, 0);
-    closeButton:SetScript('OnClick', function()
-        frame:Hide();
-    end);
+    closeButton:SetScript('OnClick', function() frame:Hide(); end);
 
     local label = frame:CreateFontString(nil, 'OVERLAY', 'GameFontHighlightSmall');
     label:SetAllPoints();
@@ -539,9 +536,7 @@ function ns:GetMoverFrame(onMoveCallback)
 
     frame.onMoveCallback = onMoveCallback;
     frame:SetMovable(true);
-    frame:SetScript('OnMouseDown', function()
-        frame:StartMoving();
-    end);
+    frame:SetScript('OnMouseDown', function() frame:StartMoving(); end);
     frame:SetScript('OnMouseUp', function()
         frame:StopMovingOrSizing();
         frame:SetUserPlaced(false);
